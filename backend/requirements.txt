@@ -1,0 +1,44 @@
+# Core API
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.7.0
+pydantic-settings==2.3.0
+python-multipart==0.0.9
+slowapi==0.1.9
+
+# Firebase (free forever)
+firebase-admin==6.5.0
+
+# Groq (free — replaces OpenAI, no card needed)
+groq==0.9.0
+
+# HuggingFace (free inference API)
+huggingface-hub==0.23.4
+requests==2.32.3
+
+# Vector operations (pre-compiled wheels available on Windows)
+numpy==1.26.4
+
+# Socket.io (WebRTC signaling — free, built-in)
+python-socketio==5.11.2
+python-engineio==4.9.1
+
+# PDF Generation (free)
+reportlab==4.2.2
+
+# Geo distance
+geopy==2.4.1
+
+# HTTP
+httpx==0.27.0
+
+# Utils
+python-jose[cryptography]==3.3.0
+python-dateutil==2.9.0
+pytz==2024.1
+Pillow==10.3.0
+
+# Testing
+pytest==8.2.2
+pytest-asyncio==0.23.7
+httpx==0.27.0
