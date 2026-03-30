@@ -3,10 +3,10 @@
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Firebase](https://img.shields.io/badge/Database-Firebase-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![AI-Powered](https://img.shields.io/badge/AI-Groq%20LLaMA3-fuchsia?style=flat-square)](https://groq.ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-**Vela** is a multi-dimensional clinical command center designed to bridge the gap between AI triage and human professional medicine. Built with a sleek **Cyber-Glass & Neon Pulse** aesthetic, it provides a high-performance environment for both doctors and patients.
+**Vela** is a multi-dimensional clinical command center designed to bridge the gap between AI triage and human professional medicine. Built with a sleek **Cyber-Glass & Neon Pulse** aesthetic, it provides a high-performance environment for both doctors and patients, unifying the entire healthcare journey into a single digital nexus.
 
 ---
 
@@ -16,36 +16,46 @@ Vela is divided into two primary nodes:
 
 ### 1. [Frontend (Next.js Node)](./frontend)
 A high-performance React application utilizing **Next.js 15 App Router** for a fluid, responsive medical portal.
-- **Doctor Nexus**: Comprehensive dashboard for clinical practice management.
-- **Patient Portal**: Secure access to medical records, appointments, and AI triage.
-- **Cyber-Glass UI**: A futuristic, state-of-the-art interface with glassmorphism and fluid animations.
+- **Doctor Nexus**: Comprehensive clinical management with UHD video integration.
+- **Patient Portal**: AI-First health dashboard with real-time biometric telemetry.
+- **Cyber-Glass UI**: A state-of-the-art interface with glassmorphism and fluid motion.
 
 ### 2. [Backend (FastAPI Node)](./backend)
 A production-grade Python API layer handling identity, complex clinical logic, and real-time syncing.
-- **Firebase Core**: Real-time Firestore document syncing and secure Auth.
-- **Clinical Routers**: Dedicated points for doctor registration, appointment scheduling, and revenue analytics.
-- **AI Triage Integration**: Leveraging state-of-the-art LLMs for diagnostic assistance.
+- **AI Triage Core**: Groq-powered LLaMA3/Whisper for instant symptoms analysis.
+- **Firebase Core**: Real-time Firestore document syncing and secure Storage archives.
+- **Clinical Logic**: Advanced scheduling, Rx generation, and automated EMR lifecycle.
 
 ---
 
-## 🧪 Key Features
+## 🔬 Core Ecosystem Modules
 
-- **🛡️ Multi-Phase Guarding**: Strict authentication and roles-based gating for unverified, pending, and verified providers.
-- **📊 Financial Intelligence**: Real-time revenue analytics and automated yield tracking for clinicians.
-- **🗓️ Temporal Command**: Advanced weekly scheduling system with subcollection-level precision.
-- **🏥 Patient Archives**: Full EMR (Electronic Medical Record) lifecycle management.
-- **🚑 Live Availability**: Real-time toggling for clinical sessions with instant patient notification.
+### 🏥 The Clinical Loop (End-to-End)
+- **AI Symptom Triage**: Descriptive triage in any language using LLaMA3.
+- **UHD Video Consultation**: Encrypted WebRTC consultation room with live AI transcripts.
+- **Digital Rx Builder**: High-fidelity prescription generation with meds and lab advice.
+- **Pharmacy Marketplace**: Real-time inventory search and door-step medicine delivery.
+- **Lab Diagnostics**: Categorized test catalog with home sampling booking protocol.
+
+### 🛡️ Smart Triage & Emergency
+- **Emergency SOS Node**: One-tap geolocation broadcast for instant rescue dispatch (1122/Edhi/Police).
+- **Family Network**: Centralized command for managing dependents and senior health nodes.
+- **Health Vault**: End-to-end encrypted storage for labs, scans, and clinical archives.
+
+### 📊 Clinician Intelligence
+- **Temporal Alignment**: Weekly slot management with subcollection precision.
+- **Registry & EMR**: Doctors access deep patient medical history before consultations.
+- **Analytics Matrix**: Real-time revenue tracking and patient density predictions.
 
 ---
 
-## 🚀 Deployment & Local Setup
+## 🚀 Quick Setup (Development)
 
 ### ⚙️ Backend Setup
 1. `cd backend`
-2. `python -m venv .venv`
-3. `source .venv/bin/activate` (or `.venv\Scripts\activate` on Windows)
-4. `pip install -r requirements.txt`
-5. `uvicorn main:socket_app --reload`
+2. `pip install -r requirements.txt`
+3. Configure `.env` with Firebase & Groq keys.
+4. `uvicorn main:socket_app --reload --port 8000`
 
 ### 🎨 Frontend Setup
 1. `cd frontend`
@@ -54,15 +64,15 @@ A production-grade Python API layer handling identity, complex clinical logic, a
 
 ---
 
-## 🛠️ Tech Stack & Dependencies
+## 🛠️ Technology Stack
 
-- **Frontend**: React 19, Next.js 15, Zustand (State), Framer Motion (Animations), Tailwind CSS.
-- **Backend**: Python 3.10+, FastAPI, Pydantic, Firebase Admin SDK.
-- **Infrastructure**: Groq/HuggingFace (AI), Vercel/Render (Deployment).
+- **Frontend**: Next.js 15, Zustand (State), Framer Motion (Animations), TanStack Query.
+- **Backend**: FastAPI, Pydantic, Firebase Admin SDK, Groq AI (LLaMA3, Whisper).
+- **Communication**: WebRTC (Video), Socket.io (Signaling), Firebase Auth.
 
 ---
 
 ## 📜 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Developed with 💖 by the **Vela Development Team**.
+Developed with 💖 for a Healthy Pakistan.

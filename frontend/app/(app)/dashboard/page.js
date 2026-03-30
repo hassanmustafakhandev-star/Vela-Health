@@ -1,14 +1,24 @@
 'use client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import GlassCard from '@/components/ui/GlassCard';
 import { Brain, Stethoscope, Activity, Users, ShieldCheck, FileText, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import useAuthStore from '@/store/authStore';
+import { useMyAppointments } from '@/hooks/useAppointments';
+import { Video, Calendar as CalendarIcon, Clock as ClockIcon } from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
+import { useHealthSummary } from '@/hooks/useHealthRecords';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
   const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const router = useRouter();
+
+  const { data, isLoading } = useMyAppointments();
+  const { data: summary, isLoading: summaryLoading } = useHealthSummary();
+  const upcoming = data?.appointments || [];
 
   const containerVars = {
     hidden: { opacity: 0 },
@@ -41,15 +51,82 @@ export default function Dashboard() {
 
         <div className="flex gap-4 relative z-10">
           <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 backdrop-blur-3xl shadow-2xl">
-            <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-1">Heart Rate</p>
-            <p className="text-2xl font-mono font-bold text-white tracking-tighter shadow-prism-rose/50">72<span className="text-sm text-prism-rose ml-1">BPM</span></p>
+            <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-1">Latest Pulse</p>
+            <p className="text-2xl font-mono font-bold text-white tracking-tighter">
+               {summary?.latest_vitals?.find(v => v.type === 'heart_rate')?.value || '--'}<span className="text-sm text-prism-rose ml-1">BPM</span>
+            </p>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 backdrop-blur-3xl shadow-2xl">
-            <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-1">Protection</p>
-            <p className="text-2xl font-mono font-bold text-white tracking-tighter">100<span className="text-sm text-prism-cyan ml-1">%</span></p>
+            <p className="text-xs font-black uppercase tracking-widest text-white/40 mb-1">Blood Glucose</p>
+            <p className="text-2xl font-mono font-bold text-white tracking-tighter">
+               {summary?.latest_vitals?.find(v => v.type === 'sugar')?.value || '--'}<span className="text-sm text-prism-cyan ml-1">MG/DL</span>
+            </p>
           </div>
         </div>
       </motion.div>
+
+      {/* Active Appointments Section */}
+      <AnimatePresence>
+        {isLoading ? (
+          <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-40 w-full rounded-[40px]" />
+            <Skeleton className="h-40 w-full rounded-[40px]" />
+          </div>
+        ) : upcoming.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-12"
+          >
+            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 mb-6 flex items-center gap-3 ml-2">
+               <div className="w-1.5 h-1.5 rounded-full bg-prism-rose" />
+               Active Horizon Appointments
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {upcoming.map((appt) => (
+                <GlassCard key={appt.id} glowColor="rose" className="p-6 group relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/10 bg-white/5 p-0.5">
+                        <img 
+                          src={appt.doctor?.photo || `https://i.pravatar.cc/150?u=${appt.doctor_id}`} 
+                          className="w-full h-full object-cover rounded-[14px]"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black uppercase tracking-widest text-prism-rose mb-0.5">{appt.doctor?.name || 'Vanguard Specialist'}</p>
+                        <p className="text-xs font-medium text-white/40 italic">"{appt.reason}"</p>
+                      </div>
+                    </div>
+                    {appt.type === 'video' && (
+                       <div className="w-10 h-10 rounded-full bg-prism-rose/10 flex items-center justify-center text-prism-rose border border-prism-rose/20">
+                         <Video size={18} />
+                       </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 text-white/60 text-xs font-bold">
+                       <span className="flex items-center gap-1.5"><CalendarIcon size={14} className="text-prism-rose" /> {appt.date}</span>
+                       <span className="flex items-center gap-1.5"><ClockIcon size={14} className="text-prism-cyan" /> {appt.time}</span>
+                    </div>
+                    {appt.type === 'video' && (
+                      <Button 
+                        variant="rose" 
+                        size="sm" 
+                        className="h-10 px-6 text-[10px] font-black tracking-widest uppercase shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                        onClick={() => router.push(`/consultation/${appt.id}`)}
+                      >
+                        Join Video Call
+                      </Button>
+                    )}
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Spatial Grid */}
       <motion.div 
@@ -64,12 +141,12 @@ export default function Dashboard() {
               <div className="w-14 h-14 rounded-2xl bg-prism-fuchsia/20 border border-prism-fuchsia/40 flex items-center justify-center text-prism-fuchsia mb-8 shadow-[0_0_20px_rgba(217,70,239,0.3)]">
                 <Brain size={28} />
               </div>
-              <h3 className="text-3xl font-display font-bold text-white mb-3">Sehat AI Core</h3>
-              <p className="text-white/50 font-medium max-w-sm mb-8 leading-relaxed">
-                Initiate a neural diagnostic session. Describe symptoms in any language for immediate triage.
+              <h3 className="text-3xl font-display font-bold text-white mb-3">Sehat AI Insight</h3>
+              <p className="text-white/50 font-medium max-w-sm mb-8 leading-relaxed italic">
+                {summary?.latest_insight?.text || "Synchronize your medical records for an AI health trajectory analysis."}
               </p>
               <div className="flex items-center gap-2 text-sm font-black text-prism-fuchsia uppercase tracking-widest group-hover:gap-4 transition-all">
-                Initialize Connect <ChevronRight size={18} />
+                Access Triage Core <ChevronRight size={18} />
               </div>
             </GlassCard>
           </Link>

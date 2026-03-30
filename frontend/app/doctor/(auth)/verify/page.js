@@ -77,7 +77,7 @@ export default function DoctorVerify() {
         variant="rose" 
         className="w-full h-16 shadow-[0_0_20px_rgba(244,63,94,0.3)]"
         disabled={!isComplete}
-        onClick={() => router.push('/doctor/setup')}
+        onClick={() => router.push('/doctor/register')}
       >
         Complete Registration <ArrowRight size={18} className="ml-2" />
       </Button>

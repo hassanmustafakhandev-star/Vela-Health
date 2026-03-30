@@ -162,7 +162,7 @@ export default function DoctorDashboard() {
                 {nextAppt?.reason || 'Your clinical queue is currently empty.'}
               </p>
               <button
-                onClick={() => nextAppt && router.push(`/doctor/consult/${nextAppt.id}`)}
+                onClick={() => nextAppt && router.push(`/consultation/${nextAppt.id}`)}
                 disabled={!nextAppt}
                 className="w-full h-14 rounded-2xl bg-prism-rose text-white font-bold shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
               >

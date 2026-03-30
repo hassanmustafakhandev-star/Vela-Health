@@ -1,25 +1,37 @@
 'use client';
-import { motion } from 'framer-motion';
-import PatientCard from '@/components/doctor/patient/PatientCard';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, Users, UserPlus, Loader2, ChevronRight, Activity, Heart, User } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import Input from '@/components/ui/Input';
-import { Search, Filter, Users, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import api from '@/lib/api';
+import { toast } from 'react-hot-toast';
 
 export default function PatientRegistry() {
+  const router = useRouter();
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  
-  // Simulated patient data
-  const patients = [
-    { id: 'p1', name: 'Hassan Mustafa', age: 24, gender: 'Male', photo_url: 'https://i.pravatar.cc/100?img=33' },
-    { id: 'p2', name: 'Zoya Khan', age: 29, gender: 'Female', photo_url: 'https://i.pravatar.cc/100?img=32' },
-    { id: 'p3', name: 'Ahmed Ali', age: 45, gender: 'Male', photo_url: 'https://i.pravatar.cc/100?img=12' },
-    { id: 'p4', name: 'Sarah Ahmed', age: 31, gender: 'Female', photo_url: 'https://i.pravatar.cc/100?img=22' },
-    { id: 'p5', name: 'Omar Malik', age: 38, gender: 'Male', photo_url: 'https://i.pravatar.cc/100?img=15' },
-    { id: 'p6', name: 'Fatima Zahra', age: 27, gender: 'Female', photo_url: 'https://i.pravatar.cc/100?img=18' },
-  ];
 
-  const filtered = patients.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const res = await api.get('/doctor/patients/');
+        setPatients(res.data || []);
+      } catch (err) {
+        toast.error("Cloud synchronization failed.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
+  }, []);
+
+  const filtered = (patients || []).filter(p => 
+    p.name?.toLowerCase().includes(search.toLowerCase()) || 
+    p.id?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="py-2">
@@ -39,12 +51,9 @@ export default function PatientRegistry() {
 
         <div className="flex items-center gap-3">
            <GlassCard className="px-6 py-3 border-white/5 bg-white/5 flex items-center gap-3">
-              <span className="text-xs font-black uppercase tracking-widest text-white/40">Total</span>
-              <span className="text-2xl font-mono font-bold text-white">{patients.length}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-white/40">Linked Identity Nodes</span>
+              <span className="text-2xl font-mono font-bold text-white">{loading ? '...' : patients.length}</span>
            </GlassCard>
-           <button className="h-14 px-6 rounded-2xl bg-prism-cyan text-white font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:scale-105 transition-all">
-              <UserPlus size={18} /> <span className="hidden sm:inline">Add Patient</span>
-           </button>
         </div>
       </motion.div>
 
@@ -52,7 +61,7 @@ export default function PatientRegistry() {
         <div className="w-full md:w-96">
            <Input 
             placeholder="Search identity by name or ID..." 
-            icon={Search}
+            icon={<Search size={18} />}
             className="h-14 bg-white/5 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -62,25 +71,67 @@ export default function PatientRegistry() {
            <button className="flex-1 md:flex-none h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-bold flex items-center justify-center gap-2 hover:text-white transition-all">
              <Filter size={18} /> Type
            </button>
-           <button className="flex-1 md:flex-none h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-bold flex items-center justify-center gap-2 hover:text-white transition-all">
-             <Filter size={18} /> Recency
-           </button>
         </div>
       </div>
 
-      <motion.div 
-        layout
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-      >
-        {filtered.map(p => (
-           <PatientCard key={p.id} patient={p} />
-        ))}
-        {filtered.length === 0 && (
-           <div className="col-span-full p-20 text-center rounded-[40px] border-2 border-dashed border-white/5 bg-white/[0.02]">
-              <p className="text-white/20 italic">No biographical matches discovered in this sector.</p>
-           </div>
-        )}
-      </motion.div>
+      {loading ? (
+        <div className="py-20 flex justify-center">
+           <Loader2 className="animate-spin text-prism-cyan" size={32} />
+        </div>
+      ) : (
+        <motion.div 
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        >
+          {filtered.map(p => (
+            <motion.div key={p.id} whileHover={{ y: -5 }}>
+              <GlassCard 
+                glowColor="cyan" 
+                className="p-6 cursor-pointer group"
+                onClick={() => router.push(`/doctor/patients/${p.id}`)}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/5 overflow-hidden p-0.5">
+                    <img 
+                      src={p.photo_url || `https://i.pravatar.cc/100?u=${p.id}`} 
+                      className="w-full h-full object-cover rounded-[14px] contrast-125 saturate-150"
+                    />
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">System ID</span>
+                    <span className="text-[10px] font-mono text-white/60">{p.id.substring(0, 8)}</span>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h4 className="text-lg font-bold text-white mb-0.5">{p.name || 'Anonymous Patient'}</h4>
+                  <p className="text-xs font-black uppercase tracking-widest text-white/30">{p.age}y · {p.gender}</p>
+                </div>
+
+                <div className="flex justify-between border-t border-white/5 pt-4">
+                  <div className="text-center">
+                    <p className="font-mono text-xs font-bold text-white">--</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-1 flex items-center gap-1"><Heart size={10} className="text-prism-rose" /> Pulse</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-mono text-xs font-bold text-white">0</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-1 flex items-center gap-1"><Activity size={10} className="text-prism-emerald" /> EMR Docs</p>
+                  </div>
+                  <button className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-prism-cyan group-hover:gap-2 transition-all">
+                    View <ChevronRight size={12} />
+                  </button>
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="col-span-full p-20 text-center rounded-[40px] border-2 border-dashed border-white/5 bg-white/[0.02]">
+                <p className="text-white/20 italic">No biographical matches discovered in this sector.</p>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

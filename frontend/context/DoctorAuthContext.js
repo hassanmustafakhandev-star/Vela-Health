@@ -5,6 +5,8 @@ import useAuthStore from '@/store/authStore';
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1';
+
 /**
  * DoctorAuthContext
  *
@@ -30,11 +32,75 @@ export function DoctorAuthProvider({ children }) {
     updateAvailableNow,
   } = useDoctorAuthStore();
 
-  const { user, setUser, role: globalRole } = useAuthStore();
+  const { user, setUser } = useAuthStore();
 
   // Module-level singleton guard — prevents duplicate listeners across re-renders
   const listenerRef = useRef(null);
   const attachedUidRef = useRef(null);
+  const previousStatusRef = useRef(null);
+  const refreshingVerifiedTokenRef = useRef(false);
+  /** Stale JWT often causes permission-denied until claims catch up after admin approval. */
+  const permissionDeniedRefreshAttemptsRef = useRef(0);
+  const hydrateGenerationRef = useRef(0);
+
+  /**
+   * When client Firestore rules / token lag block onSnapshot, status stays null forever
+   * ("Syncing Medical Registry…"). Backend reads Firestore with Admin SDK — hydrate from API.
+   */
+  const hydrateDoctorFromBackend = useCallback(
+    async (uid, generation) => {
+      const { status } = useDoctorAuthStore.getState();
+      if (status !== null) return;
+      if (generation !== hydrateGenerationRef.current) return;
+
+      try {
+        const token = await auth.currentUser?.getIdToken(true);
+        if (generation !== hydrateGenerationRef.current) return;
+
+        /** Primary path: backend reads Firestore with Admin SDK (same data admin UI uses). */
+        const drRes = await fetch(`${API_URL}/doctors/${uid}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (drRes.ok) {
+          const raw = await drRes.json();
+          const { id, ...rest } = raw;
+          const profile = { ...rest, uid: id || uid };
+          if (generation !== hydrateGenerationRef.current) return;
+          if (profile.status === 'verified') {
+            initDoctorAuth(profile, token);
+            previousStatusRef.current = 'verified';
+          } else if (profile.status === 'rejected') {
+            setStatus('rejected');
+          } else if (profile.status === 'suspended') {
+            setStatus('suspended');
+          } else {
+            setStatus('pending');
+          }
+          return;
+        }
+
+        if (drRes.status === 404) {
+          if (generation !== hydrateGenerationRef.current) return;
+          setStatus('pending');
+          return;
+        }
+
+        const verifyRes = await fetch(`${API_URL}/auth/verify`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const verifyJson = verifyRes.ok ? await verifyRes.json() : {};
+        if (generation !== hydrateGenerationRef.current) return;
+        if (verifyJson.role === 'doctor' || verifyJson.token_role === 'pending_doctor') {
+          setStatus('pending');
+        }
+      } catch (e) {
+        console.error('[DoctorAuth] hydrateDoctorFromBackend:', e);
+      }
+    },
+    [initDoctorAuth, setStatus]
+  );
 
   useEffect(() => {
     const uid = user?.uid;
@@ -46,6 +112,9 @@ export function DoctorAuthProvider({ children }) {
         listenerRef.current = null;
       }
       attachedUidRef.current = null;
+      previousStatusRef.current = null;
+      refreshingVerifiedTokenRef.current = false;
+      permissionDeniedRefreshAttemptsRef.current = 0;
       logoutDoctor();
       return;
     }
@@ -60,11 +129,32 @@ export function DoctorAuthProvider({ children }) {
     }
 
     attachedUidRef.current = uid;
+    permissionDeniedRefreshAttemptsRef.current = 0;
+    hydrateGenerationRef.current += 1;
+    const gen = hydrateGenerationRef.current;
     setLoading(true);
+
+    const tHydrate0 = setTimeout(() => hydrateDoctorFromBackend(uid, gen), 0);
+    const tHydrate2s = setTimeout(() => hydrateDoctorFromBackend(uid, gen), 2000);
+    const tHydrate6s = setTimeout(() => hydrateDoctorFromBackend(uid, gen), 6000);
+    /** Stop infinite "Syncing…" if Firestore never resolves */
+    const tStall = setTimeout(() => {
+      const st = useDoctorAuthStore.getState();
+      if (gen !== hydrateGenerationRef.current) return;
+      if (st.status !== null) return;
+      hydrateDoctorFromBackend(uid, gen).finally(() => {
+        if (gen !== hydrateGenerationRef.current) return;
+        if (useDoctorAuthStore.getState().status === null) {
+          setLoading(false);
+          setStatus('pending');
+        }
+      });
+    }, 12000);
 
     const unsub = onSnapshot(
       doc(db, 'doctors', uid),
       async (docSnap) => {
+        permissionDeniedRefreshAttemptsRef.current = 0;
         if (!docSnap.exists()) {
           // Account exists but no doctor document yet
           setStatus('pending');
@@ -77,12 +167,19 @@ export function DoctorAuthProvider({ children }) {
           currentToken = await auth.currentUser?.getIdToken();
         } catch (_) {}
 
-        // Auto-refresh Firebase custom claims when newly verified
-        if (data.status === 'verified' && globalRole !== 'doctor') {
+        // Refresh token once on transition into verified so custom claims propagate.
+        const enteringVerified =
+          data.status === 'verified' && previousStatusRef.current !== 'verified';
+        if (enteringVerified && !refreshingVerifiedTokenRef.current) {
+          refreshingVerifiedTokenRef.current = true;
           try {
             const freshToken = await auth.currentUser?.getIdToken(true);
             setUser(auth.currentUser, freshToken, 'doctor');
+            currentToken = freshToken || currentToken;
           } catch (_) {}
+          finally {
+            refreshingVerifiedTokenRef.current = false;
+          }
         }
 
         switch (data.status) {
@@ -98,12 +195,34 @@ export function DoctorAuthProvider({ children }) {
           default:
             setStatus('pending');
         }
+        previousStatusRef.current = data.status ?? null;
       },
       (error) => {
-        // Never tear down the listener on permission-denied —
-        // this fires transiently during custom-claim propagation.
-        if (error?.code !== 'permission-denied') {
+        console.error('[DoctorAuth] Listener auth error:', error);
+        // permission-denied: token often still has pending_doctor after admin set verified + doctor claim.
+        // Do NOT setStatus('pending') — that traps the user on "Identity Under Review" forever.
+        if (error?.code === 'permission-denied') {
+          const attempt = permissionDeniedRefreshAttemptsRef.current + 1;
+          permissionDeniedRefreshAttemptsRef.current = attempt;
+          if (attempt <= 3) {
+            (async () => {
+              try {
+                const fresh = await auth.currentUser?.getIdToken(true);
+                setUser(auth.currentUser, fresh, 'doctor');
+                setStatus(null);
+                setLoading(true);
+              } catch (_) {
+                setLoading(false);
+                setStatus('pending');
+              }
+            })();
+          } else {
+            setLoading(false);
+            setStatus('pending');
+          }
+        } else {
           setLoading(false);
+          setStatus('pending');
         }
       }
     );
@@ -111,10 +230,18 @@ export function DoctorAuthProvider({ children }) {
     listenerRef.current = unsub;
 
     return () => {
+      hydrateGenerationRef.current += 1;
+      clearTimeout(tHydrate0);
+      clearTimeout(tHydrate2s);
+      clearTimeout(tHydrate6s);
+      clearTimeout(tStall);
       if (listenerRef.current) {
         listenerRef.current();
         listenerRef.current = null;
         attachedUidRef.current = null;
+        previousStatusRef.current = null;
+        refreshingVerifiedTokenRef.current = false;
+        permissionDeniedRefreshAttemptsRef.current = 0;
       }
     };
     // Only re-run when the user identity changes

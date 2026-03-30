@@ -20,7 +20,7 @@ import ws.consult_namespace  # noqa: F401 — registers all event handlers
 # Import all routers
 from routers import auth, ai, doctors, appointments, consult
 from routers import prescriptions, records, pharmacy, lab, emergency, payments
-from routers import admin, family
+from routers import admin, family, doctor_patients
 import asyncio
 from services.reminder_worker import start_reminder_worker
 
@@ -90,6 +90,7 @@ app.include_router(emergency.router,     prefix="/v1/emergency")
 app.include_router(payments.router,      prefix="/v1/payments")
 app.include_router(admin.router,          prefix="/v1/admin")
 app.include_router(family.router,         prefix="/v1/family")
+app.include_router(doctor_patients.router, prefix="/v1/doctor/patients")
 
 # ─── Health check ─────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Health"])

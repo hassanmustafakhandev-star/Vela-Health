@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { auth } from '@/lib/firebase';
 import { 
   onAuthStateChanged, 
+  onIdTokenChanged,
   GoogleAuthProvider, 
   signInWithPopup,
   createUserWithEmailAndPassword,
@@ -24,17 +25,37 @@ const useAuthStore = create(
   
       confirmationResult: null,
 
+      verifyWithBackend: async (token) => {
+        const res = await fetch(`${API_URL}/auth/verify`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return res.ok ? await res.json() : {};
+      },
+
       initAuth: () => {
+        // Keep token in store in sync whenever Firebase rotates/refreshes it.
+        onIdTokenChanged(auth, async (firebaseUser) => {
+          if (!firebaseUser) return;
+          try {
+            const fresh = await firebaseUser.getIdToken();
+            set({ token: fresh });
+          } catch (_) {}
+        });
+
         onAuthStateChanged(auth, async (firebaseUser) => {
           if (firebaseUser) {
             try {
-              const token = await firebaseUser.getIdToken();
-              // Verify token with backend — gets real role from Firestore
-              const res = await fetch(`${API_URL}/auth/verify`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const data = res.ok ? await res.json() : {};
+              // Force-refresh once on auth bootstrap so latest custom claims are loaded.
+              let token = await firebaseUser.getIdToken(true);
+              let data = await get().verifyWithBackend(token);
+
+              // If doctor profile is verified but token claim is stale, refresh and retry once.
+              if (data?.doctor_status === 'verified' && data?.token_role !== 'doctor') {
+                token = await firebaseUser.getIdToken(true);
+                data = await get().verifyWithBackend(token);
+              }
+
               set({
                 user: firebaseUser,
                 token,
@@ -60,13 +81,12 @@ const useAuthStore = create(
         const provider = new GoogleAuthProvider();
         try {
           const result = await signInWithPopup(auth, provider);
-          const token = await result.user.getIdToken();
-          // Backend verification already handles Google tokens
-          const res = await fetch(`${API_URL}/auth/verify`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = res.ok ? await res.json() : {};
+          let token = await result.user.getIdToken(true);
+          let data = await get().verifyWithBackend(token);
+          if (data?.doctor_status === 'verified' && data?.token_role !== 'doctor') {
+            token = await result.user.getIdToken(true);
+            data = await get().verifyWithBackend(token);
+          }
           set({
             user: result.user,
             token,
@@ -83,12 +103,12 @@ const useAuthStore = create(
       signInWithEmail: async (email, password) => {
         try {
           const result = await signInWithEmailAndPassword(auth, email, password);
-          const token = await result.user.getIdToken();
-          const res = await fetch(`${API_URL}/auth/verify`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = res.ok ? await res.json() : {};
+          let token = await result.user.getIdToken(true);
+          let data = await get().verifyWithBackend(token);
+          if (data?.doctor_status === 'verified' && data?.token_role !== 'doctor') {
+            token = await result.user.getIdToken(true);
+            data = await get().verifyWithBackend(token);
+          }
           set({ user: result.user, token, role: data.role || 'patient', loading: false });
           return result.user;
         } catch (error) {
@@ -103,13 +123,9 @@ const useAuthStore = create(
           if (name) {
             await updateProfile(result.user, { displayName: name });
           }
-          const token = await result.user.getIdToken();
+          const token = await result.user.getIdToken(true);
           // Backend verification creates the Firestore profile
-          const res = await fetch(`${API_URL}/auth/verify`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = res.ok ? await res.json() : {};
+          const data = await get().verifyWithBackend(token);
           set({ user: result.user, token, role: 'patient', loading: false });
           return result.user;
         } catch (error) {
@@ -137,12 +153,8 @@ const useAuthStore = create(
         if (!confirmationResult) throw new Error("No pending verification");
         try {
           const result = await confirmationResult.confirm(otpCode);
-          const token = await result.user.getIdToken();
-          const res = await fetch(`${API_URL}/auth/verify`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = res.ok ? await res.json() : {};
+          const token = await result.user.getIdToken(true);
+          const data = await get().verifyWithBackend(token);
           set({ user: result.user, token, role: data.role || 'patient', loading: false, confirmationResult: null });
           return result.user;
         } catch (error) {

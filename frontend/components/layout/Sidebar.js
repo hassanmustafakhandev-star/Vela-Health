@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Brain, Activity, Users, Stethoscope, FileText, Settings, ChevronLeft, ChevronRight, LogOut, Search, Command } from 'lucide-react';
+import { LayoutDashboard, Brain, Activity, Users, Stethoscope, FileText, Settings, ChevronLeft, ChevronRight, LogOut, Search, Command, Store, Microscope, ShieldAlert } from 'lucide-react';
 import { VelaLogoIcon, VelaLogoFull } from '@/components/brand/VelaLogo';
 import { useState, useEffect } from 'react';
 import useAuthStore from '@/store/authStore';
@@ -11,6 +11,9 @@ import useUiStore from '@/store/uiStore';
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, theme: 'emerald' },
   { label: 'Sehat AI', href: '/ai/symptoms', icon: Brain, theme: 'fuchsia' },
+  { label: 'Pharmacy', href: '/pharmacy', icon: Store, theme: 'cyan' },
+  { label: 'Lab Tests', href: '/labs', icon: Microscope, theme: 'emerald' },
+  { label: 'Emergency SOS', href: '/emergency', icon: ShieldAlert, theme: 'rose' },
   { label: 'Find Doctors', href: '/doctors', icon: Stethoscope, theme: 'rose' },
   { label: 'Medical Records', href: '/records', icon: Activity, theme: 'emerald' },
   { label: 'Prescriptions', href: '/prescriptions', icon: FileText, theme: 'cyan' },

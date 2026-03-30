@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { db } from '@/lib/firebase';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { auth, db } from '@/lib/firebase';
 import {
   collection,
   query,
@@ -19,6 +19,7 @@ import useAuthStore from '@/store/authStore';
  */
 export function useEarnings() {
   const uid = useAuthStore((s) => s.user?.uid);
+  const retriedAfterPermissionRef = useRef(false);
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +27,12 @@ export function useEarnings() {
   useEffect(() => {
     if (!uid) {
       setLoading(false);
+      retriedAfterPermissionRef.current = false;
       return;
     }
 
     setLoading(true);
+    retriedAfterPermissionRef.current = false;
 
     const q = query(
       collection(db, 'transactions'),
@@ -43,7 +46,14 @@ export function useEarnings() {
         setLoading(false);
       },
       (error) => {
-        if (error.code !== 'permission-denied') {
+        if (error.code === 'permission-denied') {
+          if (!retriedAfterPermissionRef.current) {
+            retriedAfterPermissionRef.current = true;
+            auth.currentUser?.getIdToken(true).catch(() => {});
+          } else {
+            setLoading(false);
+          }
+        } else {
           console.error('[Earnings] Snapshot error:', error);
           setLoading(false);
         }

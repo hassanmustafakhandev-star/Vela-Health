@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
+import { useState, useEffect, useRef } from 'react';
+import { auth, db } from '@/lib/firebase';
 import {
   collection,
   query,
@@ -18,6 +18,7 @@ import useAuthStore from '@/store/authStore';
  */
 export function useAppointmentsDoctor() {
   const uid = useAuthStore((s) => s.user?.uid);
+  const retriedAfterPermissionRef = useRef(false);
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +27,12 @@ export function useAppointmentsDoctor() {
   useEffect(() => {
     if (!uid) {
       setLoading(false);
+      retriedAfterPermissionRef.current = false;
       return;
     }
 
     setLoading(true);
+    retriedAfterPermissionRef.current = false;
 
     const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
@@ -50,8 +53,13 @@ export function useAppointmentsDoctor() {
       },
       (error) => {
         if (error.code === 'permission-denied') {
-          // Custom claims may still be propagating — keep spinner, don't crash
-          console.warn('[Appointments] Permission denied — waiting for claim propagation...');
+          if (!retriedAfterPermissionRef.current) {
+            retriedAfterPermissionRef.current = true;
+            auth.currentUser?.getIdToken(true).catch(() => {});
+          } else {
+            // Stop indefinite spinner if token refresh already failed to recover access.
+            setLoading(false);
+          }
         } else {
           console.error('[Appointments] Snapshot error:', error);
           setLoading(false);

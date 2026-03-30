@@ -15,6 +15,8 @@ import useAuthStore from '@/store/authStore';
 export default function AdminDoctors() {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [purging, setPurging] = useState(false);
+  const [diagnostics, setDiagnostics] = useState(null);
 
   const { token } = useAuthStore();
   
@@ -23,8 +25,12 @@ export default function AdminDoctors() {
     
     const fetchAllDoctors = async () => {
       try {
-        const res = await api.get('/auth/doctors/all');
-        setDoctors(res.data);
+        const [doctorsRes, diagnosticsRes] = await Promise.all([
+          api.get('/admin/doctors/all'),
+          api.get('/admin/diagnostics'),
+        ]);
+        setDoctors(doctorsRes.data);
+        setDiagnostics(diagnosticsRes.data);
       } catch (e) {
         console.error("Registry Sync Failure", e);
         toast.error("Failed to synchronize provider registry");
@@ -35,6 +41,27 @@ export default function AdminDoctors() {
     fetchAllDoctors();
   }, [token]);
 
+  const purgeDoctors = async () => {
+    if (!window.confirm('Delete ALL doctor accounts from this API environment? This cannot be undone.')) {
+      return;
+    }
+    setPurging(true);
+    try {
+      const res = await api.delete('/admin/doctors/purge');
+      toast.success(`Purged ${res.data?.targeted_uids ?? 0} doctor account(s)`);
+      const [doctorsRes, diagnosticsRes] = await Promise.all([
+        api.get('/admin/doctors/all'),
+        api.get('/admin/diagnostics'),
+      ]);
+      setDoctors(doctorsRes.data);
+      setDiagnostics(diagnosticsRes.data);
+    } catch (e) {
+      toast.error('Failed to purge doctors');
+    } finally {
+      setPurging(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-10">
       <section>
@@ -44,6 +71,17 @@ export default function AdminDoctors() {
              <p className="text-white/20 text-xs font-black uppercase tracking-widest">Global registry of all medical entities</p>
            </div>
            <div className="flex items-center gap-3">
+             <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
+               API Project: {diagnostics?.firebase_project_id || '...'}
+             </span>
+             <Button
+               variant="rose"
+               onClick={purgeDoctors}
+               disabled={purging || loading}
+               className="h-10 text-xs px-4"
+             >
+               {purging ? 'Purging...' : 'Delete All Doctors'}
+             </Button>
              <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 h-10 w-64">
                <Search size={16} className="text-white/30 mr-3" />
                <input type="text" placeholder="Search providers..." className="bg-transparent border-none outline-none text-xs text-white placeholder:text-white/30 w-full" />

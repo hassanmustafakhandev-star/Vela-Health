@@ -26,7 +26,7 @@ export default function AdminDashboard() {
       try {
         const [statsRes, pendingRes] = await Promise.all([
           api.get('/admin/stats'),
-          api.get('/auth/doctors/pending'),
+          api.get('/admin/doctors/pending'),
         ]);
         
         setStats(statsRes.data);

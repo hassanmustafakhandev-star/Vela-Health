@@ -84,9 +84,19 @@ export default function AppointmentCard({ appointment }) {
                   variant="rose" 
                   size="sm" 
                   className="h-9 px-5 text-xs font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                  onClick={() => router.push(`/doctor/consult/${appointment.id}`)}
+                  onClick={() => router.push(`/consultation/${appointment.id}`)}
                  >
                    Join Call
+                 </Button>
+               )}
+               {appointment.status !== 'completed' && (
+                 <Button 
+                  variant="emerald" 
+                  size="sm" 
+                  className="h-9 px-4 text-xs font-bold"
+                  onClick={() => router.push(`/doctor/prescriptions/new?patient_id=${appointment.patient_id}&appointment_id=${appointment.id}&patient_name=${encodeURIComponent(appointment.patient_name)}`)}
+                 >
+                   Prescribe
                  </Button>
                )}
                <button className="w-9 h-9 rounded-xl hover:bg-white/5 flex items-center justify-center text-white/20 hover:text-white transition-all">

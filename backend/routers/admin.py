@@ -4,6 +4,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from middleware.auth import get_current_user
 from middleware.role_guard import require_role
 from core.firebase import get_db
+from core.config import settings
 
 router = APIRouter(tags=["Admin"])
 
@@ -28,8 +29,10 @@ async def get_admin_stats(admin: dict = Depends(require_role("admin"))):
     pending_result = pending_query.get()
     pending_count = pending_result[0][0].value
 
-    # active doctors
-    active_count = total_doctors - pending_count
+    # Count verified doctors (active providers)
+    verified_query = db.collection("doctors").where(filter=FieldFilter("status", "==", "verified")).count()
+    verified_result = verified_query.get()
+    active_count = verified_result[0][0].value
 
     # Count total appointments
     appointments_query = db.collection("appointments").count()
@@ -69,6 +72,57 @@ async def get_all_doctors(admin: dict = Depends(require_role("admin"))):
     return [{**d.to_dict(), "uid": d.id} for d in docs]
 
 
+@router.delete("/doctors/purge")
+async def purge_all_doctors(admin: dict = Depends(require_role("admin"))):
+    """
+    Dangerous admin operation:
+    Deletes ALL doctor identities from Firestore + Firebase Auth.
+    """
+    db = get_db()
+
+    doctor_uids = {doc.id for doc in db.collection("doctors").stream()}
+    role_doctor_docs = db.collection("users").where(filter=FieldFilter("role", "==", "doctor")).stream()
+    role_suspended_docs = db.collection("users").where(filter=FieldFilter("role", "==", "suspended")).stream()
+    doctor_uids.update(doc.id for doc in role_doctor_docs)
+    doctor_uids.update(doc.id for doc in role_suspended_docs)
+
+    deleted = {
+        "auth_users": 0,
+        "doctors_docs": 0,
+        "users_docs": 0,
+    }
+
+    for uid in doctor_uids:
+        try:
+            firebase_auth.delete_user(uid)
+            deleted["auth_users"] += 1
+        except firebase_auth.UserNotFoundError:
+            pass
+        except Exception:
+            pass
+
+        db.collection("doctors").document(uid).delete()
+        deleted["doctors_docs"] += 1
+
+        db.collection("users").document(uid).delete()
+        deleted["users_docs"] += 1
+
+    return {"deleted": deleted, "targeted_uids": len(doctor_uids)}
+
+
+@router.get("/diagnostics")
+async def admin_diagnostics(admin: dict = Depends(require_role("admin"))):
+    """Quick consistency check for current API/Firebase target."""
+    db = get_db()
+    doctors_count = db.collection("doctors").count().get()[0][0].value
+    pending_count = db.collection("doctors").where(filter=FieldFilter("status", "==", "pending")).count().get()[0][0].value
+    return {
+        "firebase_project_id": settings.firebase_project_id,
+        "doctors_count": doctors_count,
+        "pending_doctors_count": pending_count,
+    }
+
+
 @router.get("/users")
 async def get_all_users(admin: dict = Depends(require_role("admin"))):
     """Fetch full registry of all user identities"""
@@ -105,6 +159,9 @@ async def delete_user(uid: str, admin: dict = Depends(require_role("admin"))):
     except Exception:
         pass  # User might not exist in Firebase Auth
     db.collection("users").document(uid).delete()
+
+    # Keep admin doctor registry in sync; avoid ghost doctors in /admin/doctors/all.
+    db.collection("doctors").document(uid).delete()
     return {"uid": uid, "deleted": True}
 
 

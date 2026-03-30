@@ -18,9 +18,11 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
     Replaces: mock-token system in authStore.js
     """
     uid = current_user["uid"]
+    token_role = current_user.get("role", "patient")
     db = get_db()
     user_ref = db.collection("users").document(uid)
     user_doc = user_ref.get()
+    doctor_status = None
 
     if not user_doc.exists:
         # New user — create Firestore document
@@ -34,7 +36,13 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
         })
         # Set Firebase custom claim for role-based access
         firebase_auth.set_custom_user_claims(uid, {"vela_role": "patient"})
-        return {"uid": uid, "role": "patient", "is_new": True}
+        return {
+            "uid": uid,
+            "role": "patient",
+            "token_role": token_role,
+            "doctor_status": doctor_status,
+            "is_new": True
+        }
 
     data = user_doc.to_dict()
     role = data.get("role", "patient")
@@ -44,6 +52,7 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
         doctor_doc = db.collection("doctors").document(uid).get()
         if doctor_doc.exists:
             doctor_data = doctor_doc.to_dict()
+            doctor_status = doctor_data.get("status")
             if doctor_data.get("status") == "verified":
                 # Auto-sync roles across collections and claims
                 db.collection("users").document(uid).update({
@@ -53,8 +62,18 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
                 firebase_auth.set_custom_user_claims(uid, {"vela_role": "doctor"})
                 role = "doctor"
                 print(f"Self-Healed identity for Doctor Node: {uid}")
+    elif role in ["doctor", "suspended"]:
+        doctor_doc = db.collection("doctors").document(uid).get()
+        if doctor_doc.exists:
+            doctor_status = doctor_doc.to_dict().get("status")
 
-    return {"uid": uid, "role": role, "is_new": False}
+    return {
+        "uid": uid,
+        "role": role,
+        "token_role": token_role,
+        "doctor_status": doctor_status,
+        "is_new": False
+    }
 
 
 @router.put("/profile")

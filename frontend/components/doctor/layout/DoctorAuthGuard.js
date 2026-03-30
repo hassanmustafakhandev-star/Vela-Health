@@ -88,7 +88,8 @@ export default function DoctorAuthGuard({ children }) {
               const tid = toast.loading('Syncing identity...');
               try {
                 await auth.currentUser?.getIdToken(true);
-                toast.success('Token refreshed', { id: tid });
+                toast.success('Token refreshed, reloading...', { id: tid });
+                window.location.reload();
               } catch {
                 toast.error('Sync failed', { id: tid });
               }
