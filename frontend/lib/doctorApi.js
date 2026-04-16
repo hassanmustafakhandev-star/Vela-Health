@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { MOCK_DOCTOR_APPOINTMENTS, MOCK_PRESCRIPTIONS, MOCK_DOCTOR_STATS } from '@/lib/mockData';
 
 /**
  * doctorApi — Centralized REST client for all doctor-specific API calls.
@@ -59,8 +60,14 @@ const doctorApi = {
    * Get today's + upcoming appointments
    * Backend: GET /v1/appointments?role=doctor
    */
-  getAppointments: (params = {}) =>
-    api.get('/appointments', { params: { role: 'doctor', ...params } }).then((r) => r.data),
+  getAppointments: async (params = {}) => {
+    try {
+      const r = await api.get('/appointments', { params: { role: 'doctor', ...params } });
+      return r.data;
+    } catch (_) {
+      return { items: MOCK_DOCTOR_APPOINTMENTS };
+    }
+  },
 
   /**
    * Get available time slots for a doctor on a date

@@ -38,6 +38,8 @@ export const usePrescriptionStore = create((set) => ({
   setFollowUpDays: (days) => set({ followUpDays: days }),
   setReferral: (referral) => set({ referral }),
 
+  clearMedicines: () => set({ medicines: [] }),
+
   loadTemplate: (template) => set({
     diagnosis: template.diagnosis || '',
     medicines: template.medicines || [],

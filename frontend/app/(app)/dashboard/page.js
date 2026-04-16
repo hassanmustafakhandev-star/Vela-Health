@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import GlassCard from '@/components/ui/GlassCard';
+import Button from '@/components/ui/Button';
 import { Brain, Stethoscope, Activity, Users, ShieldCheck, FileText, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 

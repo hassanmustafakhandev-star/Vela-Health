@@ -1,7 +1,6 @@
 import Navbar from '@/components/layout/Navbar';
 import BottomNav from '@/components/layout/BottomNav';
 import Sidebar from '@/components/layout/Sidebar';
-import useUiStore from '@/store/uiStore';
 
 export default function AppLayout({ children }) {
   return (
