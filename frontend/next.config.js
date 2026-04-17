@@ -13,6 +13,11 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    // Return empty array if backend URL is not set (e.g., in demo mode)
+    if (!process.env.NEXT_PUBLIC_API_URL) {
+      return [];
+    }
+    
     return [
       {
         source: '/api/backend/:path*',
