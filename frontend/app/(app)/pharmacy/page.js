@@ -105,7 +105,7 @@ export default function PharmacyMarketplace() {
                 className="h-16 flex-1 text-lg font-display" 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                icon={<Search size={22} />}
+                icon={Search}
               />
               <Button type="submit" variant="cyan" className="h-16 px-10 text-lg font-bold shadow-lg" disabled={searching}>
                  {searching ? <Loader2 className="animate-spin" /> : 'Search'}

@@ -33,7 +33,7 @@ export default function IssuedPrescriptions() {
         <div className="w-full md:w-96">
            <Input 
             placeholder="Search by patient or RX ID..." 
-            icon={<Search size={18} />} 
+            icon={Search} 
             className="h-14 bg-white/5 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

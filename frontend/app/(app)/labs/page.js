@@ -92,7 +92,7 @@ export default function LabMarketplace() {
       <div className="flex flex-col md:flex-row gap-6 mb-10">
          <div className="flex-1">
             <Input 
-              icon={<Search size={18} />}
+              icon={Search}
               placeholder="Search molecular tests (e.g. CBC, MRI)..."
               value={search}
               onChange={e => setSearch(e.target.value)}

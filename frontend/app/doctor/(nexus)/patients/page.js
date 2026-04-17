@@ -61,7 +61,7 @@ export default function PatientRegistry() {
         <div className="w-full md:w-96">
            <Input 
             placeholder="Search identity by name or ID..." 
-            icon={<Search size={18} />}
+            icon={Search}
             className="h-14 bg-white/5 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

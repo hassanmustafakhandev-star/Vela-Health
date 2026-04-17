@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, Activity, FilePlus, ChevronRight, Loader2, Uplink, Share2, Eye, X } from 'lucide-react';
+import { FileText, Download, Activity, FilePlus, ChevronRight, Loader2, Upload, Share2, Eye, X } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
 import Button from '@/components/ui/Button';
 import { useVitals, useDocuments, useUploadDocument, useAIInsights } from '@/hooks/useHealthRecords';
@@ -60,7 +60,7 @@ export default function RecordsPage() {
         
         <div className="flex items-center gap-3">
            <Button variant="ghost" onClick={generateInsight} className="h-[46px] border border-white/10 text-xs text-prism-emerald hover:bg-prism-emerald/10">
-              <Uplink size={16} className="mr-2" /> Sync AI Insight
+              <Upload size={16} className="mr-2" /> Sync AI Insight
            </Button>
            <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept=".pdf,.jpg,.jpeg,.png,.webp" />
            <Button 

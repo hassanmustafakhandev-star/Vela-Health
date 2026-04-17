@@ -76,7 +76,7 @@ export default function ClinicalTemplates() {
       <div className="mb-8 w-full md:w-96">
         <Input 
           placeholder="Search clinical protocols..." 
-          icon={<Search size={18} />} 
+          icon={Search} 
           className="h-14 bg-white/5"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

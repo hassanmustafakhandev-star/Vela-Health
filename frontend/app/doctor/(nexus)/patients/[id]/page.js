@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   Activity, FileText, Heart, User, ChevronLeft, 
